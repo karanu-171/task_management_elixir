@@ -4,10 +4,12 @@ defmodule TaskManagement.Application do
 
 
   def start(_type, _args) do
+  
     children = [
-      TaskManagement.Repo,
-      {Plug.Cowboy, scheme: :http, plug: TaskManagement.Router, options: [port: 4000]}
+      {Plug.Cowboy, scheme: :http, plug: TaskManagement.Router, options: [port: 4000]},
+      TaskManagement.Repo
     ]
+
 
     Logger.info("Server running on http://localhost:4000")
     opts = [strategy: :one_for_one, name: TaskManagement.Supervisor]
