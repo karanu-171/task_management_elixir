@@ -4,6 +4,7 @@ defmodule TaskManagement.Router.TaskRouter do
   alias TaskManagement.TaskController
 
   plug Plug.Parsers, parsers: [:json], json_decoder: Jason
+  plug TaskManagement.Auth.AuthPlug
   plug :match
   plug :dispatch
 
@@ -19,7 +20,7 @@ defmodule TaskManagement.Router.TaskRouter do
 
   post "/add" do
     params = conn.body_params
-    res = TaskController.create_task(params)
+    res = TaskController.create_task(conn, params)
     json(conn, res, res.statusCode)
   end
 

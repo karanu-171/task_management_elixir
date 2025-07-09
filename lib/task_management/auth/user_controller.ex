@@ -78,11 +78,24 @@ defmodule TaskManagement.Auth.UserController do
   # Delete user
   def delete_user(id) do
     case Repo.get(User, id) do
-      nil -> Response.error("User not found", 404)
+      nil ->
+        Response.error("User not found", 404)
+
       user ->
-        case Repo.delete(user) do
-          {:ok, _} -> Response.ok(nil, "User deleted successfully")
-          {:error, _} -> Response.error("Failed to delete user")
+        try do
+          case Repo.delete(user) do
+            {:ok, _} ->
+              Response.ok(nil, "User deleted successfully")
+
+            {:error, changeset} ->
+              Response.error("Delete failed: #{inspect(changeset.errors)}", 400)
+          end
+        rescue
+          Ecto.ConstraintError ->
+            Response.error("Cannot delete user: they have tasks assigned", 400)
+
+          e ->
+            Response.error("Unexpected error: #{Exception.message(e)}", 500)
         end
     end
   end

@@ -26,7 +26,8 @@ defmodule TaskManagement.MixProject do
       {:jason, "~> 1.4"},
       {:ecto_sql, "~> 3.11"},
       {:myxql, "~> 0.6"},
-      {:jose, "~> 1.11"}
+      {:jose, "~> 1.11"},
+      {:dotenvy, "~> 0.6.0"}
   ]
   end
 end

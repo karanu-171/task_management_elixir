@@ -14,7 +14,10 @@ defmodule TaskManagement.TaskController do
     end
   end
 
-  def create_task(params) do
+  def create_task(conn, params) do
+    current_user = conn.assigns.current_user
+    params = Map.put(params, "user_id", current_user.id)
+
     %Task{}
     |> Task.changeset(params)
     |> Repo.insert()

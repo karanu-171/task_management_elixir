@@ -4,7 +4,7 @@ defmodule TaskManagement.Application do
 
 
   def start(_type, _args) do
-  
+
     children = [
       {Plug.Cowboy, scheme: :http, plug: TaskManagement.Router, options: [port: 4000]},
       TaskManagement.Repo
