@@ -11,13 +11,15 @@ defmodule TaskManagement.Auth.User do
     field :password, :string
     field :first_login, :boolean, default: true
 
+    belongs_to :role, TaskManagement.Role
+
     timestamps()
   end
 
   def changeset(user, attrs) do
     user
-    |> cast(attrs, [:firstname, :lastname, :username, :email, :password, :first_login])
-    |> validate_required([:firstname, :lastname, :username, :email, :password])
+    |> cast(attrs, [:firstname, :lastname, :username, :email, :password, :first_login, :role_id])
+    |> validate_required([:firstname, :lastname, :username, :email, :password, :role_id])
     |> unique_constraint(:username)
     |> unique_constraint(:email)
   end

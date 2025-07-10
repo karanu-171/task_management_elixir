@@ -51,8 +51,15 @@ defmodule TaskManagement.Router.AuthRouter do
   end
 
   match _ do
-    send_resp(conn, 404, "Auth route not found")
+    case conn.method do
+      "GET" -> send_resp(conn, 405, "Method Not Allowed for this route")
+      "POST" -> send_resp(conn, 405, "Method Not Allowed for this route")
+      "PUT" -> send_resp(conn, 405, "Method Not Allowed for this route")
+      "DELETE" -> send_resp(conn, 405, "Method Not Allowed for this route")
+      _ -> send_resp(conn, 404, "Auth route not found")
+    end
   end
+
 
   defp json(conn, res, status) do
     conn

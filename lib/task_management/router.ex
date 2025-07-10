@@ -12,6 +12,7 @@ defmodule TaskManagement.Router do
 
   forward "/api/v1/tasks", to: TaskManagement.Router.TaskRouter
   forward "/api/v1/auth", to: TaskManagement.Router.AuthRouter
+  forward "/api/v1/role", to: TaskManagement.Router.RoleRouter
 
   match _ do
     send_resp(conn, 404, "Not Found")

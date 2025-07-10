@@ -14,6 +14,11 @@ defmodule TaskManagement.TaskController do
     end
   end
 
+  @spec create_task(any(), map()) :: %TaskManagement.Response{
+          entity: any(),
+          message: any(),
+          statusCode: any()
+        }
   def create_task(conn, params) do
     current_user = conn.assigns.current_user
     params = Map.put(params, "user_id", current_user.id)
