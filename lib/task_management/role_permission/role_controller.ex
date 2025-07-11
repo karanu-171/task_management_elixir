@@ -114,16 +114,46 @@ defmodule TaskManagement.RoleController do
   end
 
   ### ROLE-PERMISSIONS
-
   def list_role_permissions do
     permissions = Repo.all(RolePermission)
     Response.ok(permissions)
+  end
+
+  # Get one role_permission by ID
+  def get_role_permission(id) do
+    case Repo.get(RolePermission, id) do
+      nil -> Response.error("RolePermission not found", 404)
+      role_permission -> Response.ok(role_permission)
+    end
   end
 
   def assign_permission_to_role(%{"role_id" => role_id, "permission_id" => permission_id}) do
     %RolePermission{}
     |> RolePermission.changeset(%{role_id: role_id, permission_id: permission_id})
     |> Repo.insert()
+    |> case do
+      {:ok, mapping} ->
+        TaskManagement.Response.created(mapping, "Permission assigned to role successfully")
+
+      {:error, changeset} ->
+        TaskManagement.Response.error("Failed to assign permission: #{inspect(changeset.errors)}")
+    end
+  end
+
+  def update_role_permission(id, params) do
+    case Repo.get(RolePermission, id) do
+      nil ->
+        Response.error("RolePermission not found", 404)
+
+      role_permission ->
+        role_permission
+        |> RolePermission.changeset(params)
+        |> Repo.update()
+        |> case do
+          {:ok, updated} -> Response.ok(updated, "RolePermission updated successfully")
+          {:error, changeset} -> Response.error("Update failed: #{inspect(changeset.errors)}")
+        end
+    end
   end
 
   def revoke_permission(role_id, permission_id) do
@@ -132,8 +162,15 @@ defmodule TaskManagement.RoleController do
         where: rp.role_id == ^role_id and rp.permission_id == ^permission_id
 
     case Repo.one(query) do
-      nil -> {:error, "Mapping not found"}
-      mapping -> Repo.delete(mapping)
+      nil ->
+        TaskManagement.Response.error("Mapping not found", 404)
+
+      mapping ->
+        case Repo.delete(mapping) do
+          {:ok, _} -> TaskManagement.Response.ok(nil, "Permission revoked")
+          {:error, changeset} -> TaskManagement.Response.error("Failed to revoke: #{inspect(changeset.errors)}")
+        end
     end
   end
+
 end

@@ -67,9 +67,13 @@ defmodule TaskManagement.Router.RoleRouter do
   end
 
   ### ROLE-PERMISSION MAPPING
-
-  get "/role-permissions" do
+  get "/role-permissions/all" do
     res = RoleController.list_role_permissions()
+    json(conn, res, res.statusCode)
+  end
+
+   get "/role-permissions/:id" do
+    res = RoleController.get_role_permission(String.to_integer(id))
     json(conn, res, res.statusCode)
   end
 
@@ -79,13 +83,16 @@ defmodule TaskManagement.Router.RoleRouter do
     json(conn, res, res.statusCode)
   end
 
+  put "/role-permissions/update/:id" do
+    params = Map.put(conn.body_params, "id", id)
+    res = RoleController.update_role_permission(String.to_integer(id), params)
+    json(conn, res, res.statusCode)
+  end
   delete "/role-permissions/revoke" do
     %{"role_id" => role_id, "permission_id" => permission_id} = conn.body_params
 
-    case RoleController.revoke_permission(role_id, permission_id) do
-      {:ok, _} -> json(conn, %{message: "Permission revoked"}, 200)
-      {:error, reason} -> json(conn, %{error: reason}, 404)
-    end
+    res = RoleController.revoke_permission(role_id, permission_id)
+    json(conn, res, res.statusCode)
   end
 
   ### DEFAULT
