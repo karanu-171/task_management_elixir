@@ -1,8 +1,9 @@
 defmodule TaskManagement.Auth.UserController do
   alias TaskManagement.{Repo, Response}
-  alias TaskManagement.Auth.User
+  alias TaskManagement.Auth.{User, JWT}
+  import Ecto.Changeset
 
-  # Register user with auto-generated password
+  ## Register a user with an auto-generated password
   def register_user(params) do
     password = generate_password()
     full_params = Map.put(params, "password", password)
@@ -12,6 +13,7 @@ defmodule TaskManagement.Auth.UserController do
     |> Repo.insert()
     |> case do
       {:ok, user} ->
+        user = preload_role(user)
         IO.puts("Generated password for user #{user.username}: #{password}")
         Response.created(user, "User created successfully")
 
@@ -20,75 +22,66 @@ defmodule TaskManagement.Auth.UserController do
     end
   end
 
-  # Login user and return token
+  ## Login user and return token
   def login_user(%{"username" => username, "password" => password}) do
-    case Repo.get_by(User, username: username) do
+    with %User{} = user <- Repo.get_by(User, username: username),
+         true <- user.password == password do
+      user = preload_role(user)
+      token = JWT.generate_token(user.id)
+      Response.ok(%{token: token, user: user}, "Login successful")
+    else
       nil -> Response.error("User not found", 404)
-      user when user.password != password -> Response.error("Invalid password", 401)
-      user ->
-        token = TaskManagement.Auth.JWT.generate_token(user.id)
-        Response.ok(%{token: token, user: user}, "Login successful")
+      false -> Response.error("Invalid password", 401)
     end
   end
 
-  # Update user password and set first_login to false
+  ## Update password and mark first login complete
   def update_password(%{"username" => username, "new_password" => new_pass}) do
-    case Repo.get_by(User, username: username) do
+    with %User{} = user <- Repo.get_by(User, username: username),
+         {:ok, updated_user} <- change(user, %{password: new_pass, first_login: false}) |> Repo.update() do
+      Response.ok(preload_role(updated_user), "Password updated successfully")
+    else
       nil -> Response.error("User not found", 404)
-      user ->
-        user
-        |> Ecto.Changeset.change(%{password: new_pass, first_login: false})
-        |> Repo.update()
-        |> case do
-          {:ok, updated_user} -> Response.ok(updated_user, "Password updated successfully")
-          {:error, changeset} -> Response.error("Update failed: #{inspect(changeset.errors)}")
-        end
+      {:error, changeset} -> Response.error("Update failed: #{inspect(changeset.errors)}")
     end
   end
 
-  # Update user info (not password)
+  ## Update user info
   def update_user(id, params) do
-    case Repo.get(User, id) do
+    with %User{} = user <- Repo.get(User, id),
+         {:ok, updated_user} <- User.changeset(user, params) |> Repo.update() do
+      Response.ok(preload_role(updated_user), "User updated successfully")
+    else
       nil -> Response.error("User not found", 404)
-      user ->
-        user
-        |> User.changeset(params)
-        |> Repo.update()
-        |> case do
-          {:ok, updated_user} -> Response.ok(updated_user, "User updated successfully")
-          {:error, changeset} -> Response.error("Update failed: #{inspect(changeset.errors)}")
-        end
+      {:error, changeset} -> Response.error("Update failed: #{inspect(changeset.errors)}")
     end
   end
 
-  # Fetch all users
+  ## Get all users with roles
   def get_all_users do
-    users = Repo.all(User)
-    Response.ok(users)
+    User
+    |> Repo.all()
+    |> Repo.preload(:role)
+    |> Response.ok()
   end
 
-  # Fetch user by ID
+  ## Get user by ID with role
   def get_user(id) do
     case Repo.get(User, id) do
       nil -> Response.error("User not found", 404)
-      user -> Response.ok(user)
+      user -> Response.ok(preload_role(user))
     end
   end
 
-  # Delete user
+  ## Delete user, handle foreign key errors
   def delete_user(id) do
     case Repo.get(User, id) do
-      nil ->
-        Response.error("User not found", 404)
-
+      nil -> Response.error("User not found", 404)
       user ->
         try do
           case Repo.delete(user) do
-            {:ok, _} ->
-              Response.ok(nil, "User deleted successfully")
-
-            {:error, changeset} ->
-              Response.error("Delete failed: #{inspect(changeset.errors)}", 400)
+            {:ok, _} -> Response.ok(nil, "User deleted successfully")
+            {:error, changeset} -> Response.error("Delete failed: #{inspect(changeset.errors)}")
           end
         rescue
           Ecto.ConstraintError ->
@@ -99,6 +92,10 @@ defmodule TaskManagement.Auth.UserController do
         end
     end
   end
+
+  ## Private Helpers
+
+  defp preload_role(user), do: Repo.preload(user, :role)
 
   defp generate_password do
     :crypto.strong_rand_bytes(6)

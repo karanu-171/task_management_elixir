@@ -2,7 +2,7 @@ defmodule TaskManagement.Auth.User do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @derive {Jason.Encoder, only: [:id, :firstname, :lastname, :username, :email, :first_login]}
+  @derive {Jason.Encoder, only: [:id, :firstname, :lastname, :username, :email, :first_login, :role]}
   schema "users" do
     field :firstname, :string
     field :lastname, :string
